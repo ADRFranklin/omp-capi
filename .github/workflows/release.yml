@@ -1,0 +1,93 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            archive: openmp-capi-linux-x64
+          - os: windows-2022
+            platform: windows
+            archive: openmp-capi-windows-x64
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: egor-tensin/setup-clang@v2
+        with:
+          version: latest
+          platform: x64
+
+      - name: Configure Linux x64
+        if: runner.os == 'Linux'
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+
+      - name: Configure Windows x64
+        if: runner.os == 'Windows'
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -T ClangCL
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Test
+        run: ctest --test-dir build -C Release --output-on-failure
+
+      - name: Package Linux x64
+        if: runner.os == 'Linux'
+        env:
+          ARCHIVE_NAME: ${{ matrix.archive }}
+        run: |
+          mkdir -p "dist/$ARCHIVE_NAME/components" "dist/$ARCHIVE_NAME/include" "dist/$ARCHIVE_NAME/apidocs"
+          cp 'build/components/$CAPI.so' "dist/$ARCHIVE_NAME/components/"
+          cp lib/open.mp-capi/include/ompcapi.h "dist/$ARCHIVE_NAME/include/"
+          cp lib/open.mp-capi/apidocs/*.json "dist/$ARCHIVE_NAME/apidocs/"
+          cp README.md "dist/$ARCHIVE_NAME/"
+          cp lib/open.mp-capi/LICENSE.md "dist/$ARCHIVE_NAME/LICENSE.md"
+          tar -C dist -czf "dist/$ARCHIVE_NAME.tar.gz" "$ARCHIVE_NAME"
+
+      - name: Package Windows x64
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          ARCHIVE_NAME: ${{ matrix.archive }}
+        run: |
+          New-Item -ItemType Directory -Force "dist/$env:ARCHIVE_NAME/components", "dist/$env:ARCHIVE_NAME/include", "dist/$env:ARCHIVE_NAME/apidocs"
+          Copy-Item 'build/components/Release/$CAPI.dll' "dist/$env:ARCHIVE_NAME/components/"
+          Copy-Item 'lib/open.mp-capi/include/ompcapi.h' "dist/$env:ARCHIVE_NAME/include/"
+          Copy-Item 'lib/open.mp-capi/apidocs/*.json' "dist/$env:ARCHIVE_NAME/apidocs/"
+          Copy-Item 'README.md' "dist/$env:ARCHIVE_NAME/"
+          Copy-Item 'lib/open.mp-capi/LICENSE.md' "dist/$env:ARCHIVE_NAME/LICENSE.md"
+          Compress-Archive -Path "dist/$env:ARCHIVE_NAME" -DestinationPath "dist/$env:ARCHIVE_NAME.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.archive }}
+          path: dist/${{ matrix.archive }}.*
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --generate-notes --title "$GITHUB_REF_NAME"
