@@ -12,8 +12,12 @@ jobs:
         with:
           version: latest
           platform: x64
-      - name: Configure
+      - name: Configure Linux x64
+        if: runner.os == 'Linux'
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=clang++
+      - name: Configure Windows x64
+        if: runner.os == 'Windows'
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -T ClangCL
       - name: Build
         run: cmake --build build --config Release --parallel
       - name: Test
