@@ -85,6 +85,30 @@ struct OMPNetBuffer
 };
 
 struct OMPNetSubscription;
+struct OMPComponentHandle;
+struct OMPComponentAPIRegistration;
+struct OMPComponentWatch;
+
+struct OMPComponentAPIHeader
+{
+	uint64_t interface_uid;
+	uint32_t abi_version;
+	uint32_t struct_size;
+};
+
+typedef void (*OMPComponentInvalidatedCallback)(struct OMPComponentHandle* component, void* userdata);
+typedef struct OMPComponentHandle* (*Component_Find_t)(uint64_t);
+typedef bool (*Component_IsValid_t)(struct OMPComponentHandle*);
+typedef uint64_t (*Component_GetUID_t)(struct OMPComponentHandle*);
+typedef int (*Component_GetName_t)(struct OMPComponentHandle*, struct CAPIStringBuffer*);
+typedef bool (*Component_GetVersion_t)(struct OMPComponentHandle*, struct ComponentVersion*);
+typedef int32_t (*Component_GetType_t)(struct OMPComponentHandle*);
+typedef struct OMPComponentAPIRegistration* (*Component_RegisterAPI_t)(uint64_t, const struct OMPComponentAPIHeader*);
+typedef bool (*Component_UnregisterAPI_t)(struct OMPComponentAPIRegistration*);
+typedef const void* (*Component_QueryAPI_t)(struct OMPComponentHandle*, uint64_t, uint32_t, uint32_t);
+typedef bool (*Component_APIIsValid_t)(struct OMPComponentHandle*, const void*);
+typedef struct OMPComponentWatch* (*Component_Watch_t)(struct OMPComponentHandle*, OMPComponentInvalidatedCallback, void*);
+typedef bool (*Component_Unwatch_t)(struct OMPComponentWatch*);
 
 enum OMPNetResult
 {
@@ -2208,6 +2232,21 @@ struct Component_t {
     Component_Create_t Create;
 };
 
+struct ComponentInterop_t {
+    Component_Find_t Find;
+    Component_IsValid_t IsValid;
+    Component_GetUID_t GetUID;
+    Component_GetName_t GetName;
+    Component_GetVersion_t GetVersion;
+    Component_GetType_t GetType;
+    Component_RegisterAPI_t RegisterAPI;
+    Component_UnregisterAPI_t UnregisterAPI;
+    Component_QueryAPI_t QueryAPI;
+    Component_APIIsValid_t APIIsValid;
+    Component_Watch_t Watch;
+    Component_Unwatch_t Unwatch;
+};
+
 // Config functions
 struct Config_t {
     Config_GetAsBool_t GetAsBool;
@@ -2863,6 +2902,7 @@ struct OMPAPI_t {
     struct PlayerTextLabel_t PlayerTextLabel;
     struct Vehicle_t Vehicle;
     struct Network_t Network;
+    struct ComponentInterop_t ComponentInterop;
 };
 
 static bool omp_initialize_capi(struct OMPAPI_t* ompapi) {
@@ -3126,6 +3166,18 @@ static bool omp_initialize_capi(struct OMPAPI_t* ompapi) {
 
     // Retrieve Component functions
     ompapi->Component.Create = (Component_Create_t)LIBRARY_GET_ADDR(capi_lib, "Component_Create");
+    ompapi->ComponentInterop.Find = (Component_Find_t)LIBRARY_GET_ADDR(capi_lib, "Component_Find");
+    ompapi->ComponentInterop.IsValid = (Component_IsValid_t)LIBRARY_GET_ADDR(capi_lib, "Component_IsValid");
+    ompapi->ComponentInterop.GetUID = (Component_GetUID_t)LIBRARY_GET_ADDR(capi_lib, "Component_GetUID");
+    ompapi->ComponentInterop.GetName = (Component_GetName_t)LIBRARY_GET_ADDR(capi_lib, "Component_GetName");
+    ompapi->ComponentInterop.GetVersion = (Component_GetVersion_t)LIBRARY_GET_ADDR(capi_lib, "Component_GetVersion");
+    ompapi->ComponentInterop.GetType = (Component_GetType_t)LIBRARY_GET_ADDR(capi_lib, "Component_GetType");
+    ompapi->ComponentInterop.RegisterAPI = (Component_RegisterAPI_t)LIBRARY_GET_ADDR(capi_lib, "Component_RegisterAPI");
+    ompapi->ComponentInterop.UnregisterAPI = (Component_UnregisterAPI_t)LIBRARY_GET_ADDR(capi_lib, "Component_UnregisterAPI");
+    ompapi->ComponentInterop.QueryAPI = (Component_QueryAPI_t)LIBRARY_GET_ADDR(capi_lib, "Component_QueryAPI");
+    ompapi->ComponentInterop.APIIsValid = (Component_APIIsValid_t)LIBRARY_GET_ADDR(capi_lib, "Component_APIIsValid");
+    ompapi->ComponentInterop.Watch = (Component_Watch_t)LIBRARY_GET_ADDR(capi_lib, "Component_Watch");
+    ompapi->ComponentInterop.Unwatch = (Component_Unwatch_t)LIBRARY_GET_ADDR(capi_lib, "Component_Unwatch");
 
     // Retrieve Config functions
     ompapi->Config.GetAsBool = (Config_GetAsBool_t)LIBRARY_GET_ADDR(capi_lib, "Config_GetAsBool");

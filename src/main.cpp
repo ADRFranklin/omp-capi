@@ -8,6 +8,7 @@
 
 #include <sdk.hpp>
 #include "Impl/ComponentManager.hpp"
+#include "Impl/ComponentInterop/ComponentInterop.hpp"
 #include "Impl/Network/Network.hpp"
 
 class CAPIComponent final : public IComponent
@@ -20,6 +21,7 @@ public:
 
 	~CAPIComponent()
 	{
+		ComponentInteropManager::instance().shutdown();
 		CAPINetworkManager::instance().shutdown();
 		ComponentManager::Get()->FreeEvents();
 	}
@@ -44,6 +46,7 @@ public:
 		ComponentManager::Get()->Init(core_, components);
 
 		ComponentManager::Get()->InitializeEvents();
+		ComponentInteropManager::instance().initialize(components);
 		CAPINetworkManager::instance().initialize(core_);
 	}
 
@@ -57,6 +60,7 @@ public:
 		{
 			CAPINetworkManager::instance().networkUnloaded(static_cast<INetworkComponent*>(component)->getNetwork());
 		}
+		ComponentInteropManager::instance().componentUnloading(component);
 #define COMPONENT_UNLOADED(var) \
 	if (component == var)       \
 		var = nullptr;

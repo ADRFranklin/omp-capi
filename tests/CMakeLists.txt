@@ -26,3 +26,10 @@ add_test(NAME network-bridge COMMAND network-bridge-test)
 
 add_library(c-header-smoke OBJECT c_header_smoke.c)
 target_link_libraries(c-header-smoke PRIVATE OMP-CAPI)
+
+add_executable(component-interop-test component_interop.cpp
+    ${PROJECT_SOURCE_DIR}/src/Impl/ComponentInterop/ComponentInterop.cpp)
+target_include_directories(component-interop-test PRIVATE ${PROJECT_SOURCE_DIR}/src)
+target_compile_definitions(component-interop-test PRIVATE CAPI_COMPONENT_BUILD)
+target_link_libraries(component-interop-test PRIVATE OMP-SDK OMP-CAPI)
+add_test(NAME component-interop COMMAND component-interop-test)

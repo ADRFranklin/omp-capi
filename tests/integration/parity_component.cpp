@@ -6,6 +6,24 @@
 
 namespace
 {
+constexpr uint64_t ParityComponentUID = 0xD93D4096397AC9D1ULL;
+constexpr uint64_t ExampleInterfaceUID = 0x4350415049544553ULL;
+constexpr uint64_t GoInterfaceUID = 0x474F41504954424CULL;
+
+struct ExampleAPI
+{
+	OMPComponentAPIHeader header;
+	int32_t (*add)(int32_t, int32_t);
+};
+
+int32_t add(int32_t left, int32_t right) { return left + right; }
+const ExampleAPI exampleAPI { { ExampleInterfaceUID, 1, sizeof(ExampleAPI) }, add };
+
+using InteropGoQuery = int32_t (*)(OMPAPI_t*);
+using InteropGoAPI = const OMPComponentAPIHeader* (*)();
+void* goLibrary = nullptr;
+OMPComponentWatch* selfWatch = nullptr;
+
 OMPAPI_t api {};
 OMPNetSubscription* outgoingA = nullptr;
 OMPNetSubscription* outgoingB = nullptr;
@@ -19,6 +37,11 @@ void appendNetwork(const std::string& line)
 {
 	std::ofstream output("capi-parity.txt", std::ios::app);
 	output << line << '\n';
+}
+
+void componentInvalidated(OMPComponentHandle*, void*)
+{
+	appendNetwork("component.invalidated=1");
 }
 
 OMPNetResult outgoingBCallback(void*, int32_t, OMPNetBuffer*, void*)
@@ -113,7 +136,7 @@ bool onPlayerDisconnect(EventArgs_Common* args)
 class CAPIParityFixture final : public IComponent
 {
 public:
-	PROVIDE_UID(0xD93D4096397AC9D1)
+	PROVIDE_UID(ParityComponentUID)
 
 	StringView componentName() const override
 	{
@@ -184,6 +207,39 @@ public:
 		incomingAll = api.Network.SubscribeAll(OMPNetDirection_IncomingPacket, 0, incomingCallback, nullptr);
 		incomingRPC = api.Network.SubscribeAll(OMPNetDirection_IncomingRPC, 0, incomingRPCCallback, nullptr);
 		output << "network.subscriptions=" << (outgoingA && outgoingB && incomingAll && incomingRPC) << '\n';
+
+		auto* registration = api.ComponentInterop.RegisterAPI(ParityComponentUID, &exampleAPI.header);
+		auto* self = api.ComponentInterop.Find(ParityComponentUID);
+		output << "component.find=" << (self != nullptr) << '\n';
+		output << "component.valid=" << api.ComponentInterop.IsValid(self) << '\n';
+		output << "component.uid=" << std::hex << api.ComponentInterop.GetUID(self) << std::dec << '\n';
+		ComponentVersion version {};
+		output << "component.version_ok=" << api.ComponentInterop.GetVersion(self, &version) << '\n';
+		output << "component.version=" << int(version.major) << '.' << int(version.minor) << '.' << int(version.patch) << '.' << version.prerel << '\n';
+		auto* queried = static_cast<const ExampleAPI*>(api.ComponentInterop.QueryAPI(self, ExampleInterfaceUID, 1, sizeof(ExampleAPI)));
+		output << "component.register=" << (registration != nullptr) << '\n';
+		output << "component.query=" << (queried != nullptr) << '\n';
+		output << "component.call=" << (queried ? queried->add(20, 22) : -1) << '\n';
+		output << "component.wrong_version=" << (api.ComponentInterop.QueryAPI(self, ExampleInterfaceUID, 2, sizeof(ExampleAPI)) == nullptr) << '\n';
+		selfWatch = api.ComponentInterop.Watch(self, componentInvalidated, nullptr);
+		output << "component.watch=" << (selfWatch != nullptr) << '\n';
+
+#if defined(_WIN32)
+		goLibrary = LIBRARY_OPEN("./capi-go-interop.dll");
+#else
+		goLibrary = LIBRARY_OPEN("./capi-go-interop.so");
+#endif
+		if (goLibrary)
+		{
+			auto goQuery = reinterpret_cast<InteropGoQuery>(LIBRARY_GET_ADDR(goLibrary, "InteropGoQuery"));
+			auto goAPI = reinterpret_cast<InteropGoAPI>(LIBRARY_GET_ADDR(goLibrary, "InteropGoAPI"));
+			output << "component.go_query_call=" << (goQuery ? goQuery(&api) : -1) << '\n';
+			const OMPComponentAPIHeader* goTable = goAPI ? goAPI() : nullptr;
+			auto* goRegistration = api.ComponentInterop.RegisterAPI(ParityComponentUID, goTable);
+			auto* queriedGo = static_cast<const ExampleAPI*>(api.ComponentInterop.QueryAPI(self, GoInterfaceUID, 1, sizeof(ExampleAPI)));
+			output << "component.go_register=" << (goRegistration != nullptr) << '\n';
+			output << "component.go_callback=" << (queriedGo ? queriedGo->add(6, 7) : -1) << '\n';
+		}
 	}
 
 	void onFree(IComponent*) override
