@@ -1,0 +1,150 @@
+{
+  "schema_version": 1,
+  "opaque": [
+    {
+      "name": "OMPNetSubscription",
+      "ownership": "capi",
+      "lifetime": "until successfully passed to Network_Unsubscribe or component shutdown"
+    },
+    {
+      "name": "OMPComponentHandle",
+      "ownership": "capi",
+      "lifetime": "until its component is invalidated or the CAPI component shuts down"
+    },
+    {
+      "name": "OMPComponentAPIRegistration",
+      "ownership": "capi",
+      "lifetime": "until successfully passed to Component_UnregisterAPI or component shutdown"
+    },
+    {
+      "name": "OMPComponentWatch",
+      "ownership": "capi",
+      "lifetime": "until successfully passed to Component_Unwatch or component shutdown"
+    }
+  ],
+  "structs": [
+    {
+      "name": "OMPNetBuffer",
+      "lifetime": "borrowed for the duration of an OMPNetCallback invocation",
+      "mutable": true,
+      "fields": [
+        {
+          "name": "data",
+          "type": "uint8_t*",
+          "units": "bytes",
+          "ownership": "borrowed"
+        },
+        {
+          "name": "bit_length",
+          "type": "uint32_t",
+          "units": "bits"
+        },
+        {
+          "name": "capacity_bits",
+          "type": "uint32_t",
+          "units": "bits"
+        },
+        {
+          "name": "read_offset_bits",
+          "type": "uint32_t",
+          "units": "bits"
+        },
+        {
+          "name": "internal",
+          "type": "void*",
+          "visibility": "private"
+        }
+      ]
+    },
+    {
+      "name": "OMPComponentAPIHeader",
+      "fields": [
+        {
+          "name": "interface_uid",
+          "type": "uint64_t"
+        },
+        {
+          "name": "abi_version",
+          "type": "uint32_t"
+        },
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "units": "bytes"
+        }
+      ]
+    }
+  ],
+  "enums": [
+    {
+      "name": "OMPNetResult",
+      "values": {
+        "OMPNetResult_Continue": 0,
+        "OMPNetResult_Drop": 1
+      }
+    },
+    {
+      "name": "OMPNetDirection",
+      "values": {
+        "OMPNetDirection_IncomingPacket": 0,
+        "OMPNetDirection_OutgoingPacket": 1,
+        "OMPNetDirection_IncomingRPC": 2,
+        "OMPNetDirection_OutgoingRPC": 3
+      }
+    }
+  ],
+  "callbacks": [
+    {
+      "name": "OMPNetCallback",
+      "ret": "enum OMPNetResult",
+      "synchronous": true,
+      "reentrant": true,
+      "thread": "server main thread",
+      "params": [
+        {
+          "name": "player",
+          "type": "void*",
+          "nullable": true,
+          "ownership": "borrowed"
+        },
+        {
+          "name": "id",
+          "type": "int32_t"
+        },
+        {
+          "name": "buffer",
+          "type": "struct OMPNetBuffer*",
+          "nullable": false,
+          "ownership": "borrowed"
+        },
+        {
+          "name": "userdata",
+          "type": "void*",
+          "nullable": true,
+          "ownership": "caller"
+        }
+      ]
+    },
+    {
+      "name": "OMPComponentInvalidatedCallback",
+      "ret": "void",
+      "synchronous": true,
+      "reentrant": true,
+      "thread": "server main thread",
+      "params": [
+        {
+          "name": "component",
+          "type": "struct OMPComponentHandle*",
+          "nullable": false,
+          "ownership": "borrowed"
+        },
+        {
+          "name": "userdata",
+          "type": "void*",
+          "nullable": true,
+          "ownership": "caller"
+        }
+      ]
+    }
+  ]
+}

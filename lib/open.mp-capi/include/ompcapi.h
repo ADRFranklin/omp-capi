@@ -72,16 +72,14 @@ struct CAPIStringBuffer
 	char* data; /* writable buffer supplied by the caller */
 };
 
-/* Networking views are borrowed and valid only for the duration of the
-   synchronous callback.  data may be modified in place, but must not be freed
-   or retained.  Network_BufferResize may change data. */
-struct OMPNetBuffer
-{
-	uint8_t* data;
-	uint32_t bit_length;
-	uint32_t capacity_bits;
-	uint32_t read_offset_bits;
-	void* internal;
+
+/* Networking views are borrowed for the duration of a synchronous callback. */
+struct OMPNetBuffer {
+    uint8_t* data;
+    uint32_t bit_length;
+    uint32_t capacity_bits;
+    uint32_t read_offset_bits;
+    void* internal;
 };
 
 struct OMPNetSubscription;
@@ -89,73 +87,53 @@ struct OMPComponentHandle;
 struct OMPComponentAPIRegistration;
 struct OMPComponentWatch;
 
-struct OMPComponentAPIHeader
-{
-	uint64_t interface_uid;
-	uint32_t abi_version;
-	uint32_t struct_size;
+struct OMPComponentAPIHeader {
+    uint64_t interface_uid;
+    uint32_t abi_version;
+    uint32_t struct_size;
 };
 
-typedef void (*OMPComponentInvalidatedCallback)(struct OMPComponentHandle* component, void* userdata);
-typedef struct OMPComponentHandle* (*Component_Find_t)(uint64_t);
-typedef bool (*Component_IsValid_t)(struct OMPComponentHandle*);
-typedef uint64_t (*Component_GetUID_t)(struct OMPComponentHandle*);
-typedef int (*Component_GetName_t)(struct OMPComponentHandle*, struct CAPIStringBuffer*);
-typedef bool (*Component_GetVersion_t)(struct OMPComponentHandle*, struct ComponentVersion*);
-typedef int32_t (*Component_GetType_t)(struct OMPComponentHandle*);
-typedef struct OMPComponentAPIRegistration* (*Component_RegisterAPI_t)(uint64_t, const struct OMPComponentAPIHeader*);
-typedef bool (*Component_UnregisterAPI_t)(struct OMPComponentAPIRegistration*);
-typedef const void* (*Component_QueryAPI_t)(struct OMPComponentHandle*, uint64_t, uint32_t, uint32_t);
-typedef bool (*Component_APIIsValid_t)(struct OMPComponentHandle*, const void*);
-typedef struct OMPComponentWatch* (*Component_Watch_t)(struct OMPComponentHandle*, OMPComponentInvalidatedCallback, void*);
-typedef bool (*Component_Unwatch_t)(struct OMPComponentWatch*);
+typedef void (*OMPComponentInvalidatedCallback)(struct OMPComponentHandle*, void*);
 
-enum OMPNetResult
-{
-	OMPNetResult_Continue = 0,
-	OMPNetResult_Drop = 1
+enum OMPNetResult {
+    OMPNetResult_Continue = 0,
+    OMPNetResult_Drop = 1
 };
 
-enum OMPNetDirection
-{
-	OMPNetDirection_IncomingPacket = 0,
-	OMPNetDirection_OutgoingPacket = 1,
-	OMPNetDirection_IncomingRPC = 2,
-	OMPNetDirection_OutgoingRPC = 3
+enum OMPNetDirection {
+    OMPNetDirection_IncomingPacket = 0,
+    OMPNetDirection_OutgoingPacket = 1,
+    OMPNetDirection_IncomingRPC = 2,
+    OMPNetDirection_OutgoingRPC = 3
 };
 
-typedef enum OMPNetResult (*OMPNetCallback)(void* player, int32_t id, struct OMPNetBuffer* buffer, void* userdata);
-typedef struct OMPNetSubscription* (*Network_Subscribe_t)(enum OMPNetDirection, int32_t, int8_t, OMPNetCallback, void*);
-typedef struct OMPNetSubscription* (*Network_SubscribeAll_t)(enum OMPNetDirection, int8_t, OMPNetCallback, void*);
-typedef bool (*Network_Unsubscribe_t)(struct OMPNetSubscription*);
-typedef bool (*Network_BufferResize_t)(struct OMPNetBuffer*, uint32_t);
-typedef bool (*Network_SendPacket_t)(void*, const uint8_t*, uint32_t, int32_t, bool);
-typedef bool (*Network_SendRPC_t)(void*, int32_t, const uint8_t*, uint32_t, int32_t, bool);
-typedef uint32_t (*Network_BroadcastPacket_t)(int32_t, void*, const uint8_t*, uint32_t, int32_t, bool);
-typedef uint32_t (*Network_BroadcastRPC_t)(int32_t, void*, int32_t, const uint8_t*, uint32_t, int32_t, bool);
-typedef uint32_t (*Network_Count_t)(void);
-typedef int32_t (*Network_Type_t)(uint32_t);
+typedef enum OMPNetResult (*OMPNetCallback)(void*, int32_t, struct OMPNetBuffer*, void*);
+
 
 #ifdef CAPI_COMPONENT_BUILD
 #ifdef __cplusplus
 extern "C" {
 #endif
-OMP_API_EXPORT struct OMPNetSubscription* Network_Subscribe(
-	enum OMPNetDirection direction, int32_t id, int8_t priority,
-	OMPNetCallback callback, void* userdata);
-OMP_API_EXPORT struct OMPNetSubscription* Network_SubscribeAll(
-	enum OMPNetDirection direction, int8_t priority,
-	OMPNetCallback callback, void* userdata);
+OMP_API_EXPORT struct OMPComponentHandle* Component_Find(uint64_t uid);
+OMP_API_EXPORT bool Component_IsValid(struct OMPComponentHandle* component);
+OMP_API_EXPORT uint64_t Component_GetUID(struct OMPComponentHandle* component);
+OMP_API_EXPORT int Component_GetName(struct OMPComponentHandle* component, struct CAPIStringBuffer* output);
+OMP_API_EXPORT bool Component_GetVersion(struct OMPComponentHandle* component, struct ComponentVersion* output);
+OMP_API_EXPORT int32_t Component_GetType(struct OMPComponentHandle* component);
+OMP_API_EXPORT struct OMPComponentAPIRegistration* Component_RegisterAPI(uint64_t owner_uid, const struct OMPComponentAPIHeader* table);
+OMP_API_EXPORT bool Component_UnregisterAPI(struct OMPComponentAPIRegistration* registration);
+OMP_API_EXPORT const void* Component_QueryAPI(struct OMPComponentHandle* component, uint64_t interface_uid, uint32_t abi_version, uint32_t struct_size);
+OMP_API_EXPORT bool Component_APIIsValid(struct OMPComponentHandle* component, const void* table);
+OMP_API_EXPORT struct OMPComponentWatch* Component_Watch(struct OMPComponentHandle* component, OMPComponentInvalidatedCallback callback, void* userdata);
+OMP_API_EXPORT bool Component_Unwatch(struct OMPComponentWatch* watch);
+OMP_API_EXPORT struct OMPNetSubscription* Network_Subscribe(enum OMPNetDirection direction, int32_t id, int8_t priority, OMPNetCallback callback, void* userdata);
+OMP_API_EXPORT struct OMPNetSubscription* Network_SubscribeAll(enum OMPNetDirection direction, int8_t priority, OMPNetCallback callback, void* userdata);
 OMP_API_EXPORT bool Network_Unsubscribe(struct OMPNetSubscription* subscription);
 OMP_API_EXPORT bool Network_BufferResize(struct OMPNetBuffer* buffer, uint32_t bit_length);
-OMP_API_EXPORT bool Network_SendPacket(void* player, const uint8_t* data,
-	uint32_t bit_length, int32_t channel, bool dispatch_events);
-OMP_API_EXPORT bool Network_SendRPC(void* player, int32_t id, const uint8_t* data,
-	uint32_t bit_length, int32_t channel, bool dispatch_events);
-OMP_API_EXPORT uint32_t Network_BroadcastPacket(int32_t network_type, void* except_player,
-	const uint8_t* data, uint32_t bit_length, int32_t channel, bool dispatch_events);
-OMP_API_EXPORT uint32_t Network_BroadcastRPC(int32_t network_type, void* except_player,
-	int32_t id, const uint8_t* data, uint32_t bit_length, int32_t channel, bool dispatch_events);
+OMP_API_EXPORT bool Network_SendPacket(void* player, const uint8_t* data, uint32_t bit_length, int32_t channel, bool dispatch_events);
+OMP_API_EXPORT bool Network_SendRPC(void* player, int32_t id, const uint8_t* data, uint32_t bit_length, int32_t channel, bool dispatch_events);
+OMP_API_EXPORT uint32_t Network_BroadcastPacket(int32_t network_type, void* except_player, const uint8_t* data, uint32_t bit_length, int32_t channel, bool dispatch_events);
+OMP_API_EXPORT uint32_t Network_BroadcastRPC(int32_t network_type, void* except_player, int32_t id, const uint8_t* data, uint32_t bit_length, int32_t channel, bool dispatch_events);
 OMP_API_EXPORT uint32_t Network_Count(void);
 OMP_API_EXPORT int32_t Network_Type(uint32_t index);
 #ifdef __cplusplus
@@ -225,7 +203,7 @@ typedef bool (*RaceCheckpoint_Get_t)(void* player, float* x, float* y, float* z,
 typedef void* (*Class_Add_t)(uint8_t team, int skin, float x, float y, float z, float angle, uint8_t weapon1, uint32_t ammo1, uint8_t weapon2, uint32_t ammo2, uint8_t weapon3, uint32_t ammo3, int* id);
 typedef void* (*Class_FromID_t)(int classid);
 typedef int (*Class_GetID_t)(void* cls);
-typedef int (*Class_Count_t)();
+typedef int (*Class_Count_t)(void);
 typedef bool (*Class_GetData_t)(void* classptr, uint8_t* teamid, int* skin, float* x, float* y, float* z, float* angle, uint8_t* weapon1, uint32_t* weapon1_ammo, uint8_t* weapon2, uint32_t* weapon2_ammo, uint8_t* weapon3, uint32_t* weapon3_ammo);
 typedef bool (*Class_Edit_t)(void* classptr, uint8_t teamid, int skin, float x, float y, float z, float angle, uint8_t weapon1, uint32_t ammo1, uint8_t weapon2, uint32_t ammo2, uint8_t weapon3, uint32_t ammo3);
 
@@ -435,25 +413,25 @@ typedef int (*Config_GetAsString_t)(const char* cvar, struct CAPIStringBuffer* o
 
 
 // Core function type definitions
-typedef uint32_t (*Core_TickCount_t)();
-typedef int (*Core_MaxPlayers_t)();
+typedef uint32_t (*Core_TickCount_t)(void);
+typedef int (*Core_MaxPlayers_t)(void);
 typedef bool (*Core_Log_t)(const char* text);
-typedef bool (*Core_IsAdminTeleportAllowed_t)();
+typedef bool (*Core_IsAdminTeleportAllowed_t)(void);
 typedef bool (*Core_AllowAdminTeleport_t)(bool allow);
-typedef bool (*Core_AreAllAnimationsEnabled_t)();
+typedef bool (*Core_AreAllAnimationsEnabled_t)(void);
 typedef bool (*Core_EnableAllAnimations_t)(bool allow);
 typedef bool (*Core_IsAnimationLibraryValid_t)(const char* name);
-typedef bool (*Core_AreInteriorWeaponsAllowed_t)();
+typedef bool (*Core_AreInteriorWeaponsAllowed_t)(void);
 typedef bool (*Core_AllowInteriorWeapons_t)(bool allow);
 typedef bool (*Core_BlockIpAddress_t)(const char* ipAddress, int timeMS);
 typedef bool (*Core_UnBlockIpAddress_t)(const char* ipAddress);
-typedef bool (*Core_DisableEntryExitMarkers_t)();
-typedef bool (*Core_DisableNameTagsLOS_t)();
+typedef bool (*Core_DisableEntryExitMarkers_t)(void);
+typedef bool (*Core_DisableNameTagsLOS_t)(void);
 typedef bool (*Core_EnableZoneNames_t)(bool enable);
 typedef bool (*Core_ShowGameTextForAll_t)(const char* msg, int time, int style);
 typedef bool (*Core_HideGameTextForAll_t)(int style);
 typedef int (*Core_NetworkStats_t)(struct CAPIStringBuffer* output);
-typedef int (*Core_ServerTickRate_t)();
+typedef int (*Core_ServerTickRate_t)(void);
 typedef bool (*Core_GetWeaponName_t)(int weaponid, struct CAPIStringView* output);
 typedef bool (*Core_SetChatRadius_t)(float globalChatRadius);
 typedef bool (*Core_SetMarkerRadius_t)(float playerMarkerRadius);
@@ -461,21 +439,21 @@ typedef bool (*Core_SendRconCommand_t)(const char* command);
 typedef bool (*Core_SetDeathDropAmount_t)(int amount);
 typedef bool (*Core_GameMode_SetText_t)(const char* string);
 typedef bool (*Core_SetGravity_t)(float gravity);
-typedef float (*Core_GetGravity_t)();
+typedef float (*Core_GetGravity_t)(void);
 typedef bool (*Core_SetNameTagsDrawDistance_t)(float distance);
 typedef bool (*Core_SetWeather_t)(int weatherid);
 typedef bool (*Core_SetWorldTime_t)(int hour);
 typedef bool (*Core_ShowNameTags_t)(bool show);
 typedef bool (*Core_ShowPlayerMarkers_t)(int mode);
-typedef bool (*Core_UsePedAnims_t)();
-typedef int (*Core_GetWeather_t)();
-typedef int (*Core_GetWorldTime_t)();
+typedef bool (*Core_UsePedAnims_t)(void);
+typedef int (*Core_GetWeather_t)(void);
+typedef int (*Core_GetWorldTime_t)(void);
 typedef bool (*Core_ToggleChatTextReplacement_t)(bool enable);
-typedef bool (*Core_IsChatTextReplacementToggled_t)();
+typedef bool (*Core_IsChatTextReplacementToggled_t)(void);
 typedef bool (*Core_IsNickNameValid_t)(const char* name);
 typedef bool (*Core_AllowNickNameCharacter_t)(int character, bool allow);
 typedef bool (*Core_IsNickNameCharacterAllowed_t)(int character);
-typedef bool (*Core_ClearBanList_t)();
+typedef bool (*Core_ClearBanList_t)(void);
 typedef bool (*Core_IsIpAddressBanned_t)(const char* ip);
 typedef int (*Core_GetWeaponSlot_t)(uint8_t weapon);
 typedef bool (*Core_AddRule_t)(const char* name, const char* value);
@@ -577,10 +555,10 @@ typedef bool (*NPC_SetVehicleGearState_t)(void* npc, int gearState);
 typedef int (*NPC_GetVehicleGearState_t)(void* npc);
 typedef bool (*NPC_SetVehicleTrainSpeed_t)(void* npc, float speed);
 typedef float (*NPC_GetVehicleTrainSpeed_t)(void* npc);
-typedef int (*NPC_CreatePath_t)();
+typedef int (*NPC_CreatePath_t)(void);
 typedef bool (*NPC_DestroyPath_t)(int pathId);
-typedef bool (*NPC_DestroyAllPath_t)();
-typedef int (*NPC_GetPathCount_t)();
+typedef bool (*NPC_DestroyAllPath_t)(void);
+typedef int (*NPC_GetPathCount_t)(void);
 typedef bool (*NPC_AddPointToPath_t)(int pathId, float x, float y, float z, float stopRange);
 typedef bool (*NPC_RemovePointFromPath_t)(int pathId, int pointIndex);
 typedef bool (*NPC_ClearPath_t)(int pathId);
@@ -606,8 +584,8 @@ typedef bool (*NPC_IsPlaybackPaused_t)(void* npc);
 typedef int (*NPC_LoadRecord_t)(const char* filePath);
 typedef bool (*NPC_UnloadRecord_t)(int recordId);
 typedef bool (*NPC_IsValidRecord_t)(int recordId);
-typedef int (*NPC_GetRecordCount_t)();
-typedef bool (*NPC_UnloadAllRecords_t)();
+typedef int (*NPC_GetRecordCount_t)(void);
+typedef bool (*NPC_UnloadAllRecords_t)(void);
 typedef bool (*NPC_OpenNode_t)(int nodeId);
 typedef bool (*NPC_CloseNode_t)(int nodeId);
 typedef bool (*NPC_IsNodeOpen_t)(int nodeId);
@@ -953,7 +931,7 @@ typedef bool (*Vehicle_GetRotationQuat_t)(void* vehicle, float* w, float* x, flo
 typedef float (*Vehicle_GetDistanceFromPoint_t)(void* vehicle, float x, float y, float z);
 typedef bool (*Vehicle_SetZAngle_t)(void* vehicle, float angle);
 typedef bool (*Vehicle_SetParamsForPlayer_t)(void* vehicle, void* player, int objective, int doors);
-typedef bool (*Vehicle_UseManualEngineAndLights_t)();
+typedef bool (*Vehicle_UseManualEngineAndLights_t)(void);
 typedef bool (*Vehicle_SetParamsEx_t)(void* vehicle, int engine, int lights, int alarm, int doors, int bonnet, int boot, int objective);
 typedef bool (*Vehicle_GetParamsEx_t)(void* vehicle, int* engine, int* lights, int* alarm, int* doors, int* bonnet, int* boot, int* objective);
 typedef int (*Vehicle_GetParamsSirenState_t)(void* vehicle);
@@ -993,11 +971,11 @@ typedef int (*Vehicle_GetLandingGearState_t)(void* vehicle);
 typedef bool (*Vehicle_IsValid_t)(void* vehicle);
 typedef void* (*Vehicle_AddStatic_t)(int modelid, float x, float y, float z, float angle, int color1, int color2, int* id);
 typedef void* (*Vehicle_AddStaticEx_t)(int modelid, float x, float y, float z, float angle, int color1, int color2, int respawnDelay, bool addSiren, int* id);
-typedef bool (*Vehicle_EnableFriendlyFire_t)();
+typedef bool (*Vehicle_EnableFriendlyFire_t)(void);
 typedef bool (*Vehicle_GetSpawnInfo_t)(void* vehicle, float* x, float* y, float* z, float* rotation, int* color1, int* color2);
 typedef bool (*Vehicle_SetSpawnInfo_t)(void* vehicle, int modelid, float x, float y, float z, float rotation, int color1, int color2, int respawn_time, int interior);
 typedef int (*Vehicle_GetModelCount_t)(int modelid);
-typedef int (*Vehicle_GetModelsUsed_t)();
+typedef int (*Vehicle_GetModelsUsed_t)(void);
 typedef int (*Vehicle_GetPaintjob_t)(void* vehicle);
 typedef bool (*Vehicle_GetColor_t)(void* vehicle, int* color1, int* color2);
 typedef int (*Vehicle_GetInterior_t)(void* vehicle);
@@ -1022,6 +1000,34 @@ typedef float (*Vehicle_GetTrainSpeed_t)(void* vehicle);
 typedef bool (*Vehicle_GetMatrix_t)(void* vehicle, float* rightX, float* rightY, float* rightZ, float* upX, float* upY, float* upZ, float* atX, float* atY, float* atZ);
 typedef void* (*Vehicle_GetOccupant_t)(void* vehicle, int seat);
 typedef int (*Vehicle_CountOccupants_t)(void* vehicle);
+
+
+// Network function type definitions
+typedef struct OMPNetSubscription* (*Network_Subscribe_t)(enum OMPNetDirection direction, int32_t id, int8_t priority, OMPNetCallback callback, void* userdata);
+typedef struct OMPNetSubscription* (*Network_SubscribeAll_t)(enum OMPNetDirection direction, int8_t priority, OMPNetCallback callback, void* userdata);
+typedef bool (*Network_Unsubscribe_t)(struct OMPNetSubscription* subscription);
+typedef bool (*Network_BufferResize_t)(struct OMPNetBuffer* buffer, uint32_t bit_length);
+typedef bool (*Network_SendPacket_t)(void* player, const uint8_t* data, uint32_t bit_length, int32_t channel, bool dispatch_events);
+typedef bool (*Network_SendRPC_t)(void* player, int32_t id, const uint8_t* data, uint32_t bit_length, int32_t channel, bool dispatch_events);
+typedef uint32_t (*Network_BroadcastPacket_t)(int32_t network_type, void* except_player, const uint8_t* data, uint32_t bit_length, int32_t channel, bool dispatch_events);
+typedef uint32_t (*Network_BroadcastRPC_t)(int32_t network_type, void* except_player, int32_t id, const uint8_t* data, uint32_t bit_length, int32_t channel, bool dispatch_events);
+typedef uint32_t (*Network_Count_t)(void);
+typedef int32_t (*Network_Type_t)(uint32_t index);
+
+
+// ComponentInterop function type definitions
+typedef struct OMPComponentHandle* (*Component_Find_t)(uint64_t uid);
+typedef bool (*Component_IsValid_t)(struct OMPComponentHandle* component);
+typedef uint64_t (*Component_GetUID_t)(struct OMPComponentHandle* component);
+typedef int (*Component_GetName_t)(struct OMPComponentHandle* component, struct CAPIStringBuffer* output);
+typedef bool (*Component_GetVersion_t)(struct OMPComponentHandle* component, struct ComponentVersion* output);
+typedef int32_t (*Component_GetType_t)(struct OMPComponentHandle* component);
+typedef struct OMPComponentAPIRegistration* (*Component_RegisterAPI_t)(uint64_t owner_uid, const struct OMPComponentAPIHeader* table);
+typedef bool (*Component_UnregisterAPI_t)(struct OMPComponentAPIRegistration* registration);
+typedef const void* (*Component_QueryAPI_t)(struct OMPComponentHandle* component, uint64_t interface_uid, uint32_t abi_version, uint32_t struct_size);
+typedef bool (*Component_APIIsValid_t)(struct OMPComponentHandle* component, const void* table);
+typedef struct OMPComponentWatch* (*Component_Watch_t)(struct OMPComponentHandle* component, OMPComponentInvalidatedCallback callback, void* userdata);
+typedef bool (*Component_Unwatch_t)(struct OMPComponentWatch* watch);
 
 
 // Actor event type and arguments definitions
@@ -2232,21 +2238,6 @@ struct Component_t {
     Component_Create_t Create;
 };
 
-struct ComponentInterop_t {
-    Component_Find_t Find;
-    Component_IsValid_t IsValid;
-    Component_GetUID_t GetUID;
-    Component_GetName_t GetName;
-    Component_GetVersion_t GetVersion;
-    Component_GetType_t GetType;
-    Component_RegisterAPI_t RegisterAPI;
-    Component_UnregisterAPI_t UnregisterAPI;
-    Component_QueryAPI_t QueryAPI;
-    Component_APIIsValid_t APIIsValid;
-    Component_Watch_t Watch;
-    Component_Unwatch_t Unwatch;
-};
-
 // Config functions
 struct Config_t {
     Config_GetAsBool_t GetAsBool;
@@ -2862,6 +2853,7 @@ struct Vehicle_t {
     Vehicle_CountOccupants_t CountOccupants;
 };
 
+// Network functions
 struct Network_t {
     Network_Subscribe_t Subscribe;
     Network_SubscribeAll_t SubscribeAll;
@@ -2873,6 +2865,22 @@ struct Network_t {
     Network_BroadcastRPC_t BroadcastRPC;
     Network_Count_t Count;
     Network_Type_t Type;
+};
+
+// ComponentInterop functions
+struct ComponentInterop_t {
+    Component_Find_t Find;
+    Component_IsValid_t IsValid;
+    Component_GetUID_t GetUID;
+    Component_GetName_t GetName;
+    Component_GetVersion_t GetVersion;
+    Component_GetType_t GetType;
+    Component_RegisterAPI_t RegisterAPI;
+    Component_UnregisterAPI_t UnregisterAPI;
+    Component_QueryAPI_t QueryAPI;
+    Component_APIIsValid_t APIIsValid;
+    Component_Watch_t Watch;
+    Component_Unwatch_t Unwatch;
 };
 
 // All APIs
@@ -3166,18 +3174,6 @@ static bool omp_initialize_capi(struct OMPAPI_t* ompapi) {
 
     // Retrieve Component functions
     ompapi->Component.Create = (Component_Create_t)LIBRARY_GET_ADDR(capi_lib, "Component_Create");
-    ompapi->ComponentInterop.Find = (Component_Find_t)LIBRARY_GET_ADDR(capi_lib, "Component_Find");
-    ompapi->ComponentInterop.IsValid = (Component_IsValid_t)LIBRARY_GET_ADDR(capi_lib, "Component_IsValid");
-    ompapi->ComponentInterop.GetUID = (Component_GetUID_t)LIBRARY_GET_ADDR(capi_lib, "Component_GetUID");
-    ompapi->ComponentInterop.GetName = (Component_GetName_t)LIBRARY_GET_ADDR(capi_lib, "Component_GetName");
-    ompapi->ComponentInterop.GetVersion = (Component_GetVersion_t)LIBRARY_GET_ADDR(capi_lib, "Component_GetVersion");
-    ompapi->ComponentInterop.GetType = (Component_GetType_t)LIBRARY_GET_ADDR(capi_lib, "Component_GetType");
-    ompapi->ComponentInterop.RegisterAPI = (Component_RegisterAPI_t)LIBRARY_GET_ADDR(capi_lib, "Component_RegisterAPI");
-    ompapi->ComponentInterop.UnregisterAPI = (Component_UnregisterAPI_t)LIBRARY_GET_ADDR(capi_lib, "Component_UnregisterAPI");
-    ompapi->ComponentInterop.QueryAPI = (Component_QueryAPI_t)LIBRARY_GET_ADDR(capi_lib, "Component_QueryAPI");
-    ompapi->ComponentInterop.APIIsValid = (Component_APIIsValid_t)LIBRARY_GET_ADDR(capi_lib, "Component_APIIsValid");
-    ompapi->ComponentInterop.Watch = (Component_Watch_t)LIBRARY_GET_ADDR(capi_lib, "Component_Watch");
-    ompapi->ComponentInterop.Unwatch = (Component_Unwatch_t)LIBRARY_GET_ADDR(capi_lib, "Component_Unwatch");
 
     // Retrieve Config functions
     ompapi->Config.GetAsBool = (Config_GetAsBool_t)LIBRARY_GET_ADDR(capi_lib, "Config_GetAsBool");
@@ -3758,6 +3754,7 @@ static bool omp_initialize_capi(struct OMPAPI_t* ompapi) {
     ompapi->Vehicle.GetOccupant = (Vehicle_GetOccupant_t)LIBRARY_GET_ADDR(capi_lib, "Vehicle_GetOccupant");
     ompapi->Vehicle.CountOccupants = (Vehicle_CountOccupants_t)LIBRARY_GET_ADDR(capi_lib, "Vehicle_CountOccupants");
 
+    // Retrieve Network functions
     ompapi->Network.Subscribe = (Network_Subscribe_t)LIBRARY_GET_ADDR(capi_lib, "Network_Subscribe");
     ompapi->Network.SubscribeAll = (Network_SubscribeAll_t)LIBRARY_GET_ADDR(capi_lib, "Network_SubscribeAll");
     ompapi->Network.Unsubscribe = (Network_Unsubscribe_t)LIBRARY_GET_ADDR(capi_lib, "Network_Unsubscribe");
@@ -3768,6 +3765,20 @@ static bool omp_initialize_capi(struct OMPAPI_t* ompapi) {
     ompapi->Network.BroadcastRPC = (Network_BroadcastRPC_t)LIBRARY_GET_ADDR(capi_lib, "Network_BroadcastRPC");
     ompapi->Network.Count = (Network_Count_t)LIBRARY_GET_ADDR(capi_lib, "Network_Count");
     ompapi->Network.Type = (Network_Type_t)LIBRARY_GET_ADDR(capi_lib, "Network_Type");
+
+    // Retrieve ComponentInterop functions
+    ompapi->ComponentInterop.Find = (Component_Find_t)LIBRARY_GET_ADDR(capi_lib, "Component_Find");
+    ompapi->ComponentInterop.IsValid = (Component_IsValid_t)LIBRARY_GET_ADDR(capi_lib, "Component_IsValid");
+    ompapi->ComponentInterop.GetUID = (Component_GetUID_t)LIBRARY_GET_ADDR(capi_lib, "Component_GetUID");
+    ompapi->ComponentInterop.GetName = (Component_GetName_t)LIBRARY_GET_ADDR(capi_lib, "Component_GetName");
+    ompapi->ComponentInterop.GetVersion = (Component_GetVersion_t)LIBRARY_GET_ADDR(capi_lib, "Component_GetVersion");
+    ompapi->ComponentInterop.GetType = (Component_GetType_t)LIBRARY_GET_ADDR(capi_lib, "Component_GetType");
+    ompapi->ComponentInterop.RegisterAPI = (Component_RegisterAPI_t)LIBRARY_GET_ADDR(capi_lib, "Component_RegisterAPI");
+    ompapi->ComponentInterop.UnregisterAPI = (Component_UnregisterAPI_t)LIBRARY_GET_ADDR(capi_lib, "Component_UnregisterAPI");
+    ompapi->ComponentInterop.QueryAPI = (Component_QueryAPI_t)LIBRARY_GET_ADDR(capi_lib, "Component_QueryAPI");
+    ompapi->ComponentInterop.APIIsValid = (Component_APIIsValid_t)LIBRARY_GET_ADDR(capi_lib, "Component_APIIsValid");
+    ompapi->ComponentInterop.Watch = (Component_Watch_t)LIBRARY_GET_ADDR(capi_lib, "Component_Watch");
+    ompapi->ComponentInterop.Unwatch = (Component_Unwatch_t)LIBRARY_GET_ADDR(capi_lib, "Component_Unwatch");
 
     return true;
 };

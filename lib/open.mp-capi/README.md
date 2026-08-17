@@ -110,8 +110,21 @@ target_link_libraries(your_component PRIVATE OMP-CAPI)
 ## API Documentation
 
 The complete API documentation is available in the `apidocs/` directory:
+
 - `api.json`: Complete JSON specification of all API functions
 - `events.json`: Event system documentation
+- `types.json`: ABI-specific structs, enums, callbacks, ownership, and lifetime metadata
+
+Regenerate the API metadata and single header from the repository root with Node.js 18 or newer:
+
+```sh
+node lib/open.mp-capi/tools/generate_docs.js
+node lib/open.mp-capi/tools/generate_single_header.js
+```
+
+Both commands resolve their inputs relative to the script location, so they can also be run from another working directory. Networking and component interoperability declarations are maintained in `tools/api_extensions.js` because those exports do not use the standard `OMP_CAPI` macro.
+
+Functions that require a table name different from their exported symbol prefix include optional `table` and `member` fields in `api.json`. Generators should use those fields when present and retain their existing prefix-based behavior otherwise. Unknown fields can be ignored for compatibility.
 
 ## Project Structure
 
@@ -121,10 +134,12 @@ open.mp-capi/
 │   └── ompcapi.h                 # Main header file with complete API
 ├── apidocs/
 │   ├── api.json                  # API function specifications
-│   └── events.json               # Event system specifications
+│   ├── events.json               # Event system specifications
+│   └── types.json                # ABI-specific type metadata
 ├── tools/
+│   ├── api_extensions.js         # ABI-specific API and type declarations
 │   ├── generate_docs.js          # Generate the api.json file
-│   └── generate_single_header.js # Generate the ompcapi.h if you cloned the main open.mp repository
+│   └── generate_single_header.js # Generate ompcapi.h from this repository
 ├── CMakeLists.txt                # CMake configuration
 ├── LICENSE.md                    # Mozilla Public License 2.0
 └── README.md                     # This file

@@ -12587,5 +12587,416 @@
         }
       ]
     }
+  ],
+  "Network": [
+    {
+      "ret": "struct OMPNetSubscription*",
+      "name": "Network_Subscribe",
+      "params": [
+        {
+          "name": "direction",
+          "type": "enum OMPNetDirection"
+        },
+        {
+          "name": "id",
+          "type": "int32_t"
+        },
+        {
+          "name": "priority",
+          "type": "int8_t"
+        },
+        {
+          "name": "callback",
+          "type": "OMPNetCallback"
+        },
+        {
+          "name": "userdata",
+          "type": "void*"
+        }
+      ],
+      "table": "Network",
+      "member": "Subscribe"
+    },
+    {
+      "ret": "struct OMPNetSubscription*",
+      "name": "Network_SubscribeAll",
+      "params": [
+        {
+          "name": "direction",
+          "type": "enum OMPNetDirection"
+        },
+        {
+          "name": "priority",
+          "type": "int8_t"
+        },
+        {
+          "name": "callback",
+          "type": "OMPNetCallback"
+        },
+        {
+          "name": "userdata",
+          "type": "void*"
+        }
+      ],
+      "table": "Network",
+      "member": "SubscribeAll"
+    },
+    {
+      "ret": "bool",
+      "name": "Network_Unsubscribe",
+      "params": [
+        {
+          "name": "subscription",
+          "type": "struct OMPNetSubscription*"
+        }
+      ],
+      "table": "Network",
+      "member": "Unsubscribe"
+    },
+    {
+      "ret": "bool",
+      "name": "Network_BufferResize",
+      "params": [
+        {
+          "name": "buffer",
+          "type": "struct OMPNetBuffer*"
+        },
+        {
+          "name": "bit_length",
+          "type": "uint32_t"
+        }
+      ],
+      "table": "Network",
+      "member": "BufferResize"
+    },
+    {
+      "ret": "bool",
+      "name": "Network_SendPacket",
+      "params": [
+        {
+          "name": "player",
+          "type": "void*"
+        },
+        {
+          "name": "data",
+          "type": "const uint8_t*"
+        },
+        {
+          "name": "bit_length",
+          "type": "uint32_t"
+        },
+        {
+          "name": "channel",
+          "type": "int32_t"
+        },
+        {
+          "name": "dispatch_events",
+          "type": "bool"
+        }
+      ],
+      "table": "Network",
+      "member": "SendPacket"
+    },
+    {
+      "ret": "bool",
+      "name": "Network_SendRPC",
+      "params": [
+        {
+          "name": "player",
+          "type": "void*"
+        },
+        {
+          "name": "id",
+          "type": "int32_t"
+        },
+        {
+          "name": "data",
+          "type": "const uint8_t*"
+        },
+        {
+          "name": "bit_length",
+          "type": "uint32_t"
+        },
+        {
+          "name": "channel",
+          "type": "int32_t"
+        },
+        {
+          "name": "dispatch_events",
+          "type": "bool"
+        }
+      ],
+      "table": "Network",
+      "member": "SendRPC"
+    },
+    {
+      "ret": "uint32_t",
+      "name": "Network_BroadcastPacket",
+      "params": [
+        {
+          "name": "network_type",
+          "type": "int32_t"
+        },
+        {
+          "name": "except_player",
+          "type": "void*"
+        },
+        {
+          "name": "data",
+          "type": "const uint8_t*"
+        },
+        {
+          "name": "bit_length",
+          "type": "uint32_t"
+        },
+        {
+          "name": "channel",
+          "type": "int32_t"
+        },
+        {
+          "name": "dispatch_events",
+          "type": "bool"
+        }
+      ],
+      "table": "Network",
+      "member": "BroadcastPacket"
+    },
+    {
+      "ret": "uint32_t",
+      "name": "Network_BroadcastRPC",
+      "params": [
+        {
+          "name": "network_type",
+          "type": "int32_t"
+        },
+        {
+          "name": "except_player",
+          "type": "void*"
+        },
+        {
+          "name": "id",
+          "type": "int32_t"
+        },
+        {
+          "name": "data",
+          "type": "const uint8_t*"
+        },
+        {
+          "name": "bit_length",
+          "type": "uint32_t"
+        },
+        {
+          "name": "channel",
+          "type": "int32_t"
+        },
+        {
+          "name": "dispatch_events",
+          "type": "bool"
+        }
+      ],
+      "table": "Network",
+      "member": "BroadcastRPC"
+    },
+    {
+      "ret": "uint32_t",
+      "name": "Network_Count",
+      "params": [],
+      "table": "Network",
+      "member": "Count"
+    },
+    {
+      "ret": "int32_t",
+      "name": "Network_Type",
+      "params": [
+        {
+          "name": "index",
+          "type": "uint32_t"
+        }
+      ],
+      "table": "Network",
+      "member": "Type"
+    }
+  ],
+  "ComponentInterop": [
+    {
+      "ret": "struct OMPComponentHandle*",
+      "name": "Component_Find",
+      "params": [
+        {
+          "name": "uid",
+          "type": "uint64_t"
+        }
+      ],
+      "table": "ComponentInterop",
+      "member": "Find"
+    },
+    {
+      "ret": "bool",
+      "name": "Component_IsValid",
+      "params": [
+        {
+          "name": "component",
+          "type": "struct OMPComponentHandle*"
+        }
+      ],
+      "table": "ComponentInterop",
+      "member": "IsValid"
+    },
+    {
+      "ret": "uint64_t",
+      "name": "Component_GetUID",
+      "params": [
+        {
+          "name": "component",
+          "type": "struct OMPComponentHandle*"
+        }
+      ],
+      "table": "ComponentInterop",
+      "member": "GetUID"
+    },
+    {
+      "ret": "int",
+      "name": "Component_GetName",
+      "params": [
+        {
+          "name": "component",
+          "type": "struct OMPComponentHandle*"
+        },
+        {
+          "name": "output",
+          "type": "CAPIStringBuffer*"
+        }
+      ],
+      "table": "ComponentInterop",
+      "member": "GetName"
+    },
+    {
+      "ret": "bool",
+      "name": "Component_GetVersion",
+      "params": [
+        {
+          "name": "component",
+          "type": "struct OMPComponentHandle*"
+        },
+        {
+          "name": "output",
+          "type": "ComponentVersion*"
+        }
+      ],
+      "table": "ComponentInterop",
+      "member": "GetVersion"
+    },
+    {
+      "ret": "int32_t",
+      "name": "Component_GetType",
+      "params": [
+        {
+          "name": "component",
+          "type": "struct OMPComponentHandle*"
+        }
+      ],
+      "table": "ComponentInterop",
+      "member": "GetType"
+    },
+    {
+      "ret": "struct OMPComponentAPIRegistration*",
+      "name": "Component_RegisterAPI",
+      "params": [
+        {
+          "name": "owner_uid",
+          "type": "uint64_t"
+        },
+        {
+          "name": "table",
+          "type": "const struct OMPComponentAPIHeader*"
+        }
+      ],
+      "table": "ComponentInterop",
+      "member": "RegisterAPI"
+    },
+    {
+      "ret": "bool",
+      "name": "Component_UnregisterAPI",
+      "params": [
+        {
+          "name": "registration",
+          "type": "struct OMPComponentAPIRegistration*"
+        }
+      ],
+      "table": "ComponentInterop",
+      "member": "UnregisterAPI"
+    },
+    {
+      "ret": "const void*",
+      "name": "Component_QueryAPI",
+      "params": [
+        {
+          "name": "component",
+          "type": "struct OMPComponentHandle*"
+        },
+        {
+          "name": "interface_uid",
+          "type": "uint64_t"
+        },
+        {
+          "name": "abi_version",
+          "type": "uint32_t"
+        },
+        {
+          "name": "struct_size",
+          "type": "uint32_t"
+        }
+      ],
+      "table": "ComponentInterop",
+      "member": "QueryAPI"
+    },
+    {
+      "ret": "bool",
+      "name": "Component_APIIsValid",
+      "params": [
+        {
+          "name": "component",
+          "type": "struct OMPComponentHandle*"
+        },
+        {
+          "name": "table",
+          "type": "const void*"
+        }
+      ],
+      "table": "ComponentInterop",
+      "member": "APIIsValid"
+    },
+    {
+      "ret": "struct OMPComponentWatch*",
+      "name": "Component_Watch",
+      "params": [
+        {
+          "name": "component",
+          "type": "struct OMPComponentHandle*"
+        },
+        {
+          "name": "callback",
+          "type": "OMPComponentInvalidatedCallback"
+        },
+        {
+          "name": "userdata",
+          "type": "void*"
+        }
+      ],
+      "table": "ComponentInterop",
+      "member": "Watch"
+    },
+    {
+      "ret": "bool",
+      "name": "Component_Unwatch",
+      "params": [
+        {
+          "name": "watch",
+          "type": "struct OMPComponentWatch*"
+        }
+      ],
+      "table": "ComponentInterop",
+      "member": "Unwatch"
+    }
   ]
 }
