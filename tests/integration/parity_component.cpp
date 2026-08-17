@@ -7,6 +7,73 @@
 namespace
 {
 OMPAPI_t api {};
+OMPNetSubscription* outgoingA = nullptr;
+OMPNetSubscription* outgoingB = nullptr;
+OMPNetSubscription* incomingAll = nullptr;
+OMPNetSubscription* incomingRPC = nullptr;
+bool recursed = false;
+bool disconnectedInsideCallback = false;
+bool sawIncomingRPC = false;
+
+void appendNetwork(const std::string& line)
+{
+	std::ofstream output("capi-parity.txt", std::ios::app);
+	output << line << '\n';
+}
+
+OMPNetResult outgoingBCallback(void*, int32_t, OMPNetBuffer*, void*)
+{
+	appendNetwork("network.outgoing_b_called=1");
+	return OMPNetResult_Continue;
+}
+
+OMPNetResult outgoingACallback(void*, int32_t id, OMPNetBuffer* buffer, void*)
+{
+	appendNetwork("network.outgoing_a.id=" + std::to_string(id));
+	appendNetwork("network.outgoing_a.bits=" + std::to_string(buffer->bit_length));
+	appendNetwork("network.unsubscribe_other=" + std::to_string(api.Network.Unsubscribe(outgoingB)));
+	appendNetwork("network.unsubscribe_self=" + std::to_string(api.Network.Unsubscribe(outgoingA)));
+	appendNetwork("network.unsubscribe_self_twice=" + std::to_string(api.Network.Unsubscribe(outgoingA)));
+	return OMPNetResult_Continue;
+}
+
+OMPNetResult resizeAndDrop(void*, int32_t id, OMPNetBuffer* buffer, void*)
+{
+	appendNetwork("network.resize.id=" + std::to_string(id));
+	buffer->data[0] = 201;
+	appendNetwork("network.resize.ok=" + std::to_string(api.Network.BufferResize(buffer, 4097)));
+	appendNetwork("network.resize.bits=" + std::to_string(buffer->bit_length));
+	return OMPNetResult_Drop;
+}
+
+OMPNetResult incomingCallback(void* player, int32_t id, OMPNetBuffer* buffer, void*)
+{
+	if (!recursed)
+	{
+		recursed = true;
+		const uint8_t payload[] { 7 };
+		appendNetwork("network.incoming.id=" + std::to_string(id));
+		appendNetwork("network.incoming.bits=" + std::to_string(buffer->bit_length));
+		appendNetwork("network.reentrant_send=" + std::to_string(api.Network.SendRPC(player, 251, payload, 8, 0, true)));
+	}
+	else if (!disconnectedInsideCallback)
+	{
+		disconnectedInsideCallback = true;
+		appendNetwork("network.disconnect_inside_callback=" + std::to_string(api.Player.Kick(player)));
+	}
+	return OMPNetResult_Continue;
+}
+
+OMPNetResult incomingRPCCallback(void*, int32_t id, OMPNetBuffer* buffer, void*)
+{
+	if (!sawIncomingRPC)
+	{
+		sawIncomingRPC = true;
+		appendNetwork("network.incoming_rpc.id=" + std::to_string(id));
+		appendNetwork("network.incoming_rpc.bits=" + std::to_string(buffer->bit_length));
+	}
+	return OMPNetResult_Continue;
+}
 
 void appendPlayerEvent(const char* event, EventArgs_Common* args)
 {
@@ -24,6 +91,14 @@ void appendPlayerEvent(const char* event, EventArgs_Common* args)
 bool onPlayerConnect(EventArgs_Common* args)
 {
 	appendPlayerEvent("player.connect", args);
+	void* player = *static_cast<void**>(args->list[0]);
+	const uint8_t rpc[] { 1, 2 };
+	const uint8_t packet[] { 200, 2 };
+	appendNetwork("network.send_rpc_first=" + std::to_string(api.Network.SendRPC(player, 250, rpc, 16, 0, true)));
+	appendNetwork("network.send_rpc_second=" + std::to_string(api.Network.SendRPC(player, 250, rpc, 16, 0, true)));
+	appendNetwork("network.send_packet_dropped=" + std::to_string(api.Network.SendPacket(player, packet, 16, 0, true)));
+	appendNetwork("network.broadcast_rpc=" + std::to_string(api.Network.BroadcastRPC(-1, nullptr, 252, rpc, 16, 0, true)));
+	appendNetwork("network.broadcast_packet=" + std::to_string(api.Network.BroadcastPacket(-1, nullptr, packet, 16, 0, false)));
 	return true;
 }
 
@@ -101,6 +176,14 @@ public:
 
 		output << "event.add_connect=" << api.Event.AddHandler("onPlayerConnect", EventPriorityType_Default, reinterpret_cast<void*>(onPlayerConnect)) << '\n';
 		output << "event.add_disconnect=" << api.Event.AddHandler("onPlayerDisconnect", EventPriorityType_Default, reinterpret_cast<void*>(onPlayerDisconnect)) << '\n';
+		output << "network.count=" << api.Network.Count() << '\n';
+		if (api.Network.Count()) output << "network.type0=" << api.Network.Type(0) << '\n';
+		outgoingA = api.Network.Subscribe(OMPNetDirection_OutgoingRPC, 250, -10, outgoingACallback, nullptr);
+		outgoingB = api.Network.Subscribe(OMPNetDirection_OutgoingRPC, 250, 0, outgoingBCallback, nullptr);
+		api.Network.Subscribe(OMPNetDirection_OutgoingPacket, 200, 0, resizeAndDrop, nullptr);
+		incomingAll = api.Network.SubscribeAll(OMPNetDirection_IncomingPacket, 0, incomingCallback, nullptr);
+		incomingRPC = api.Network.SubscribeAll(OMPNetDirection_IncomingRPC, 0, incomingRPCCallback, nullptr);
+		output << "network.subscriptions=" << (outgoingA && outgoingB && incomingAll && incomingRPC) << '\n';
 	}
 
 	void onFree(IComponent*) override

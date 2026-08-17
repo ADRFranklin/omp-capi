@@ -11,13 +11,14 @@ set(OMP_BUILD_VERSION 0 CACHE STRING "open.mp build number reported by the compo
 
 add_subdirectory(lib/open.mp-capi)
 add_subdirectory(lib/open.mp-sdk)
+add_subdirectory(lib/open.mp-network)
 
 file(GLOB_RECURSE OMP_CAPI_COMPONENT_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp")
 
 add_library(openmp-capi SHARED ${OMP_CAPI_COMPONENT_SOURCES})
-target_link_libraries(openmp-capi PRIVATE OMP-CAPI OMP-SDK)
+target_link_libraries(openmp-capi PRIVATE OMP-CAPI OMP-SDK OMP-Network)
 target_compile_definitions(openmp-capi PRIVATE
     CAPI_COMPONENT_BUILD
     OMP_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}

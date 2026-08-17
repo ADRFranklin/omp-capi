@@ -72,6 +72,73 @@ struct CAPIStringBuffer
 	char* data; /* writable buffer supplied by the caller */
 };
 
+/* Networking views are borrowed and valid only for the duration of the
+   synchronous callback.  data may be modified in place, but must not be freed
+   or retained.  Network_BufferResize may change data. */
+struct OMPNetBuffer
+{
+	uint8_t* data;
+	uint32_t bit_length;
+	uint32_t capacity_bits;
+	uint32_t read_offset_bits;
+	void* internal;
+};
+
+struct OMPNetSubscription;
+
+enum OMPNetResult
+{
+	OMPNetResult_Continue = 0,
+	OMPNetResult_Drop = 1
+};
+
+enum OMPNetDirection
+{
+	OMPNetDirection_IncomingPacket = 0,
+	OMPNetDirection_OutgoingPacket = 1,
+	OMPNetDirection_IncomingRPC = 2,
+	OMPNetDirection_OutgoingRPC = 3
+};
+
+typedef enum OMPNetResult (*OMPNetCallback)(void* player, int32_t id, struct OMPNetBuffer* buffer, void* userdata);
+typedef struct OMPNetSubscription* (*Network_Subscribe_t)(enum OMPNetDirection, int32_t, int8_t, OMPNetCallback, void*);
+typedef struct OMPNetSubscription* (*Network_SubscribeAll_t)(enum OMPNetDirection, int8_t, OMPNetCallback, void*);
+typedef bool (*Network_Unsubscribe_t)(struct OMPNetSubscription*);
+typedef bool (*Network_BufferResize_t)(struct OMPNetBuffer*, uint32_t);
+typedef bool (*Network_SendPacket_t)(void*, const uint8_t*, uint32_t, int32_t, bool);
+typedef bool (*Network_SendRPC_t)(void*, int32_t, const uint8_t*, uint32_t, int32_t, bool);
+typedef uint32_t (*Network_BroadcastPacket_t)(int32_t, void*, const uint8_t*, uint32_t, int32_t, bool);
+typedef uint32_t (*Network_BroadcastRPC_t)(int32_t, void*, int32_t, const uint8_t*, uint32_t, int32_t, bool);
+typedef uint32_t (*Network_Count_t)(void);
+typedef int32_t (*Network_Type_t)(uint32_t);
+
+#ifdef CAPI_COMPONENT_BUILD
+#ifdef __cplusplus
+extern "C" {
+#endif
+OMP_API_EXPORT struct OMPNetSubscription* Network_Subscribe(
+	enum OMPNetDirection direction, int32_t id, int8_t priority,
+	OMPNetCallback callback, void* userdata);
+OMP_API_EXPORT struct OMPNetSubscription* Network_SubscribeAll(
+	enum OMPNetDirection direction, int8_t priority,
+	OMPNetCallback callback, void* userdata);
+OMP_API_EXPORT bool Network_Unsubscribe(struct OMPNetSubscription* subscription);
+OMP_API_EXPORT bool Network_BufferResize(struct OMPNetBuffer* buffer, uint32_t bit_length);
+OMP_API_EXPORT bool Network_SendPacket(void* player, const uint8_t* data,
+	uint32_t bit_length, int32_t channel, bool dispatch_events);
+OMP_API_EXPORT bool Network_SendRPC(void* player, int32_t id, const uint8_t* data,
+	uint32_t bit_length, int32_t channel, bool dispatch_events);
+OMP_API_EXPORT uint32_t Network_BroadcastPacket(int32_t network_type, void* except_player,
+	const uint8_t* data, uint32_t bit_length, int32_t channel, bool dispatch_events);
+OMP_API_EXPORT uint32_t Network_BroadcastRPC(int32_t network_type, void* except_player,
+	int32_t id, const uint8_t* data, uint32_t bit_length, int32_t channel, bool dispatch_events);
+OMP_API_EXPORT uint32_t Network_Count(void);
+OMP_API_EXPORT int32_t Network_Type(uint32_t index);
+#ifdef __cplusplus
+}
+#endif
+#endif
+
 #ifndef CAPI_COMPONENT_BUILD
 
 typedef void* Player;
@@ -2756,6 +2823,19 @@ struct Vehicle_t {
     Vehicle_CountOccupants_t CountOccupants;
 };
 
+struct Network_t {
+    Network_Subscribe_t Subscribe;
+    Network_SubscribeAll_t SubscribeAll;
+    Network_Unsubscribe_t Unsubscribe;
+    Network_BufferResize_t BufferResize;
+    Network_SendPacket_t SendPacket;
+    Network_SendRPC_t SendRPC;
+    Network_BroadcastPacket_t BroadcastPacket;
+    Network_BroadcastRPC_t BroadcastRPC;
+    Network_Count_t Count;
+    Network_Type_t Type;
+};
+
 // All APIs
 struct OMPAPI_t {
     struct Actor_t Actor;
@@ -2782,6 +2862,7 @@ struct OMPAPI_t {
     struct TextLabel_t TextLabel;
     struct PlayerTextLabel_t PlayerTextLabel;
     struct Vehicle_t Vehicle;
+    struct Network_t Network;
 };
 
 static bool omp_initialize_capi(struct OMPAPI_t* ompapi) {
@@ -3624,6 +3705,17 @@ static bool omp_initialize_capi(struct OMPAPI_t* ompapi) {
     ompapi->Vehicle.GetMatrix = (Vehicle_GetMatrix_t)LIBRARY_GET_ADDR(capi_lib, "Vehicle_GetMatrix");
     ompapi->Vehicle.GetOccupant = (Vehicle_GetOccupant_t)LIBRARY_GET_ADDR(capi_lib, "Vehicle_GetOccupant");
     ompapi->Vehicle.CountOccupants = (Vehicle_CountOccupants_t)LIBRARY_GET_ADDR(capi_lib, "Vehicle_CountOccupants");
+
+    ompapi->Network.Subscribe = (Network_Subscribe_t)LIBRARY_GET_ADDR(capi_lib, "Network_Subscribe");
+    ompapi->Network.SubscribeAll = (Network_SubscribeAll_t)LIBRARY_GET_ADDR(capi_lib, "Network_SubscribeAll");
+    ompapi->Network.Unsubscribe = (Network_Unsubscribe_t)LIBRARY_GET_ADDR(capi_lib, "Network_Unsubscribe");
+    ompapi->Network.BufferResize = (Network_BufferResize_t)LIBRARY_GET_ADDR(capi_lib, "Network_BufferResize");
+    ompapi->Network.SendPacket = (Network_SendPacket_t)LIBRARY_GET_ADDR(capi_lib, "Network_SendPacket");
+    ompapi->Network.SendRPC = (Network_SendRPC_t)LIBRARY_GET_ADDR(capi_lib, "Network_SendRPC");
+    ompapi->Network.BroadcastPacket = (Network_BroadcastPacket_t)LIBRARY_GET_ADDR(capi_lib, "Network_BroadcastPacket");
+    ompapi->Network.BroadcastRPC = (Network_BroadcastRPC_t)LIBRARY_GET_ADDR(capi_lib, "Network_BroadcastRPC");
+    ompapi->Network.Count = (Network_Count_t)LIBRARY_GET_ADDR(capi_lib, "Network_Count");
+    ompapi->Network.Type = (Network_Type_t)LIBRARY_GET_ADDR(capi_lib, "Network_Type");
 
     return true;
 };

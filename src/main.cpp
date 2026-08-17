@@ -8,6 +8,7 @@
 
 #include <sdk.hpp>
 #include "Impl/ComponentManager.hpp"
+#include "Impl/Network/Network.hpp"
 
 class CAPIComponent final : public IComponent
 {
@@ -19,6 +20,7 @@ public:
 
 	~CAPIComponent()
 	{
+		CAPINetworkManager::instance().shutdown();
 		ComponentManager::Get()->FreeEvents();
 	}
 
@@ -42,6 +44,7 @@ public:
 		ComponentManager::Get()->Init(core_, components);
 
 		ComponentManager::Get()->InitializeEvents();
+		CAPINetworkManager::instance().initialize(core_);
 	}
 
 	void onReady() override
@@ -50,6 +53,10 @@ public:
 
 	void onFree(IComponent* component) override
 	{
+		if (component && component->componentType() == ComponentType::Network)
+		{
+			CAPINetworkManager::instance().networkUnloaded(static_cast<INetworkComponent*>(component)->getNetwork());
+		}
 #define COMPONENT_UNLOADED(var) \
 	if (component == var)       \
 		var = nullptr;
