@@ -7,8 +7,11 @@ if(NOT status EQUAL 0)
     message(FATAL_ERROR "Could not inspect component symbols")
 endif()
 foreach(symbol IN ITEMS ComponentEntryPoint Core_TickCount Player_GetID
-        Vehicle_Create Object_Create Actor_Create Pickup_Create Component_Create
-        Event_AddHandler)
+		Vehicle_Create Object_Create Actor_Create Pickup_Create Component_Create
+		Event_AddHandler Component_RegisterCallable Component_UnregisterCallable
+		Component_FindCallable Component_CallableIsValid Component_GetCallableCount
+		Component_GetCallableAt Component_GetCallableDescriptor Component_InvokeCallable
+		Component_WatchCallable Component_UnwatchCallable)
     string(FIND "${symbols}" " ${symbol}" symbol_position)
     if(symbol_position EQUAL -1)
         message(FATAL_ERROR "Missing expected C ABI symbol: ${symbol}")

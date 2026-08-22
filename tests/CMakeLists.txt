@@ -33,3 +33,10 @@ target_include_directories(component-interop-test PRIVATE ${PROJECT_SOURCE_DIR}/
 target_compile_definitions(component-interop-test PRIVATE CAPI_COMPONENT_BUILD)
 target_link_libraries(component-interop-test PRIVATE OMP-SDK OMP-CAPI)
 add_test(NAME component-interop COMMAND component-interop-test)
+
+add_executable(callable-registry-test callable_registry.cpp
+    ${PROJECT_SOURCE_DIR}/src/Impl/ComponentInterop/ComponentInterop.cpp)
+target_include_directories(callable-registry-test PRIVATE ${PROJECT_SOURCE_DIR}/src)
+target_compile_definitions(callable-registry-test PRIVATE CAPI_COMPONENT_BUILD)
+target_link_libraries(callable-registry-test PRIVATE OMP-SDK OMP-CAPI)
+add_test(NAME callable-registry COMMAND callable-registry-test)

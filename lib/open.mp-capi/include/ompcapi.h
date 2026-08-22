@@ -86,6 +86,8 @@ struct OMPNetSubscription;
 struct OMPComponentHandle;
 struct OMPComponentAPIRegistration;
 struct OMPComponentWatch;
+struct OMPCallableRegistration;
+struct OMPCallableWatch;
 
 struct OMPComponentAPIHeader {
     uint64_t interface_uid;
@@ -94,6 +96,142 @@ struct OMPComponentAPIHeader {
 };
 
 typedef void (*OMPComponentInvalidatedCallback)(struct OMPComponentHandle*, void*);
+
+#define OMP_CALLABLE_ABI_VERSION 1u
+
+enum OMPCallableValueType {
+    OMPCallableValueType_Null = 0,
+    OMPCallableValueType_Bool = 1,
+    OMPCallableValueType_Int32 = 2,
+    OMPCallableValueType_UInt32 = 3,
+    OMPCallableValueType_Int64 = 4,
+    OMPCallableValueType_UInt64 = 5,
+    OMPCallableValueType_Float = 6,
+    OMPCallableValueType_Double = 7,
+    OMPCallableValueType_String = 8,
+    OMPCallableValueType_Bytes = 9,
+    OMPCallableValueType_Entity = 10
+};
+
+enum OMPCallableErrorCode {
+    OMPCallableError_None = 0,
+    OMPCallableError_NotFound = 1,
+    OMPCallableError_InvalidHandle = 2,
+    OMPCallableError_ArgumentCount = 3,
+    OMPCallableError_ArgumentType = 4,
+    OMPCallableError_InvalidArgument = 5,
+    OMPCallableError_ComponentUnavailable = 6,
+    OMPCallableError_Rejected = 7,
+    OMPCallableError_AllocationFailure = 8,
+    OMPCallableError_InternalFailure = 9,
+    OMPCallableError_Busy = 10,
+    OMPCallableError_OutputTooSmall = 11
+};
+
+enum OMPCallableParameterFlags {
+    OMPCallableParameterFlag_None = 0,
+    OMPCallableParameterFlag_Optional = 1u << 0,
+    OMPCallableParameterFlag_HasDefault = 1u << 1
+};
+
+enum OMPCallableFlags {
+    OMPCallableFlag_None = 0,
+    OMPCallableFlag_Deprecated = 1u << 0,
+    OMPCallableFlag_MainThreadOnly = 1u << 1,
+    OMPCallableFlag_MayCallback = 1u << 2
+};
+
+struct OMPCallableStringView {
+    uint32_t abi_version;
+    uint32_t struct_size;
+    const char* data;
+    uint32_t length;
+};
+
+struct OMPCallableBytesView {
+    uint32_t abi_version;
+    uint32_t struct_size;
+    const uint8_t* data;
+    uint32_t length;
+};
+
+struct OMPCallableEntityValue {
+    uint32_t abi_version;
+    uint32_t struct_size;
+    uint32_t entity_type;
+    uint32_t reserved;
+    uint64_t id;
+};
+
+struct OMPCallableValue {
+    uint32_t abi_version;
+    uint32_t struct_size;
+    uint32_t type;
+    uint32_t flags;
+    union {
+        uint8_t boolean;
+        int32_t int32_value;
+        uint32_t uint32_value;
+        int64_t int64_value;
+        uint64_t uint64_value;
+        float float_value;
+        double double_value;
+        struct OMPCallableStringView string_value;
+        struct OMPCallableBytesView bytes_value;
+        struct OMPCallableEntityValue entity_value;
+    } value;
+};
+
+struct OMPCallableParameter {
+    uint32_t abi_version;
+    uint32_t struct_size;
+    struct OMPCallableStringView name;
+    uint32_t type;
+    uint32_t flags;
+    struct OMPCallableValue default_value;
+};
+
+struct OMPCallableDescriptor {
+    uint32_t abi_version;
+    uint32_t struct_size;
+    struct OMPCallableStringView name;
+    struct OMPCallableStringView documentation;
+    uint32_t parameter_count;
+    const struct OMPCallableParameter* parameters;
+    uint32_t return_type;
+    uint32_t flags;
+};
+
+struct OMPCallableOutputBuffer {
+    uint32_t abi_version;
+    uint32_t struct_size;
+    uint8_t* data;
+    uint32_t capacity;
+    uint32_t length;
+};
+
+struct OMPCallableError {
+    uint32_t abi_version;
+    uint32_t struct_size;
+    uint32_t code;
+    uint32_t reserved;
+    struct CAPIStringBuffer message;
+};
+
+struct OMPCallableContext {
+    uint32_t abi_version;
+    uint32_t struct_size;
+    const struct OMPCallableValue* arguments;
+    uint32_t argument_count;
+    struct OMPCallableValue* result;
+    struct OMPCallableOutputBuffer* output;
+    struct OMPCallableError* error;
+    uint32_t flags;
+    uint32_t reserved[4];
+};
+
+typedef bool (*OMPCallableCallback)(struct OMPCallableContext*, void*);
+typedef void (*OMPCallableInvalidatedCallback)(struct OMPCallableRegistration*, void*);
 
 enum OMPNetResult {
     OMPNetResult_Continue = 0,
@@ -126,6 +264,16 @@ OMP_API_EXPORT const void* Component_QueryAPI(struct OMPComponentHandle* compone
 OMP_API_EXPORT bool Component_APIIsValid(struct OMPComponentHandle* component, const void* table);
 OMP_API_EXPORT struct OMPComponentWatch* Component_Watch(struct OMPComponentHandle* component, OMPComponentInvalidatedCallback callback, void* userdata);
 OMP_API_EXPORT bool Component_Unwatch(struct OMPComponentWatch* watch);
+OMP_API_EXPORT struct OMPCallableRegistration* Component_RegisterCallable(uint64_t owner_uid, const struct OMPCallableDescriptor* descriptor, OMPCallableCallback callback, void* userdata);
+OMP_API_EXPORT bool Component_UnregisterCallable(struct OMPCallableRegistration* callable);
+OMP_API_EXPORT struct OMPCallableRegistration* Component_FindCallable(struct OMPComponentHandle* component, struct CAPIStringView name);
+OMP_API_EXPORT bool Component_CallableIsValid(struct OMPCallableRegistration* callable);
+OMP_API_EXPORT uint32_t Component_GetCallableCount(struct OMPComponentHandle* component);
+OMP_API_EXPORT struct OMPCallableRegistration* Component_GetCallableAt(struct OMPComponentHandle* component, uint32_t index);
+OMP_API_EXPORT const struct OMPCallableDescriptor* Component_GetCallableDescriptor(struct OMPCallableRegistration* callable);
+OMP_API_EXPORT bool Component_InvokeCallable(struct OMPCallableRegistration* callable, const struct OMPCallableValue* args, uint32_t arg_count, struct OMPCallableValue* result, struct OMPCallableOutputBuffer* output, struct OMPCallableError* error, uint32_t flags);
+OMP_API_EXPORT struct OMPCallableWatch* Component_WatchCallable(struct OMPCallableRegistration* callable, OMPCallableInvalidatedCallback callback, void* userdata);
+OMP_API_EXPORT bool Component_UnwatchCallable(struct OMPCallableWatch* watch);
 OMP_API_EXPORT struct OMPNetSubscription* Network_Subscribe(enum OMPNetDirection direction, int32_t id, int8_t priority, OMPNetCallback callback, void* userdata);
 OMP_API_EXPORT struct OMPNetSubscription* Network_SubscribeAll(enum OMPNetDirection direction, int8_t priority, OMPNetCallback callback, void* userdata);
 OMP_API_EXPORT bool Network_Unsubscribe(struct OMPNetSubscription* subscription);
@@ -1028,6 +1176,16 @@ typedef const void* (*Component_QueryAPI_t)(struct OMPComponentHandle* component
 typedef bool (*Component_APIIsValid_t)(struct OMPComponentHandle* component, const void* table);
 typedef struct OMPComponentWatch* (*Component_Watch_t)(struct OMPComponentHandle* component, OMPComponentInvalidatedCallback callback, void* userdata);
 typedef bool (*Component_Unwatch_t)(struct OMPComponentWatch* watch);
+typedef struct OMPCallableRegistration* (*Component_RegisterCallable_t)(uint64_t owner_uid, const struct OMPCallableDescriptor* descriptor, OMPCallableCallback callback, void* userdata);
+typedef bool (*Component_UnregisterCallable_t)(struct OMPCallableRegistration* callable);
+typedef struct OMPCallableRegistration* (*Component_FindCallable_t)(struct OMPComponentHandle* component, struct CAPIStringView name);
+typedef bool (*Component_CallableIsValid_t)(struct OMPCallableRegistration* callable);
+typedef uint32_t (*Component_GetCallableCount_t)(struct OMPComponentHandle* component);
+typedef struct OMPCallableRegistration* (*Component_GetCallableAt_t)(struct OMPComponentHandle* component, uint32_t index);
+typedef const struct OMPCallableDescriptor* (*Component_GetCallableDescriptor_t)(struct OMPCallableRegistration* callable);
+typedef bool (*Component_InvokeCallable_t)(struct OMPCallableRegistration* callable, const struct OMPCallableValue* args, uint32_t arg_count, struct OMPCallableValue* result, struct OMPCallableOutputBuffer* output, struct OMPCallableError* error, uint32_t flags);
+typedef struct OMPCallableWatch* (*Component_WatchCallable_t)(struct OMPCallableRegistration* callable, OMPCallableInvalidatedCallback callback, void* userdata);
+typedef bool (*Component_UnwatchCallable_t)(struct OMPCallableWatch* watch);
 
 
 // Actor event type and arguments definitions
@@ -2881,6 +3039,16 @@ struct ComponentInterop_t {
     Component_APIIsValid_t APIIsValid;
     Component_Watch_t Watch;
     Component_Unwatch_t Unwatch;
+    Component_RegisterCallable_t RegisterCallable;
+    Component_UnregisterCallable_t UnregisterCallable;
+    Component_FindCallable_t FindCallable;
+    Component_CallableIsValid_t CallableIsValid;
+    Component_GetCallableCount_t GetCallableCount;
+    Component_GetCallableAt_t GetCallableAt;
+    Component_GetCallableDescriptor_t GetCallableDescriptor;
+    Component_InvokeCallable_t InvokeCallable;
+    Component_WatchCallable_t WatchCallable;
+    Component_UnwatchCallable_t UnwatchCallable;
 };
 
 // All APIs
@@ -3779,6 +3947,16 @@ static bool omp_initialize_capi(struct OMPAPI_t* ompapi) {
     ompapi->ComponentInterop.APIIsValid = (Component_APIIsValid_t)LIBRARY_GET_ADDR(capi_lib, "Component_APIIsValid");
     ompapi->ComponentInterop.Watch = (Component_Watch_t)LIBRARY_GET_ADDR(capi_lib, "Component_Watch");
     ompapi->ComponentInterop.Unwatch = (Component_Unwatch_t)LIBRARY_GET_ADDR(capi_lib, "Component_Unwatch");
+    ompapi->ComponentInterop.RegisterCallable = (Component_RegisterCallable_t)LIBRARY_GET_ADDR(capi_lib, "Component_RegisterCallable");
+    ompapi->ComponentInterop.UnregisterCallable = (Component_UnregisterCallable_t)LIBRARY_GET_ADDR(capi_lib, "Component_UnregisterCallable");
+    ompapi->ComponentInterop.FindCallable = (Component_FindCallable_t)LIBRARY_GET_ADDR(capi_lib, "Component_FindCallable");
+    ompapi->ComponentInterop.CallableIsValid = (Component_CallableIsValid_t)LIBRARY_GET_ADDR(capi_lib, "Component_CallableIsValid");
+    ompapi->ComponentInterop.GetCallableCount = (Component_GetCallableCount_t)LIBRARY_GET_ADDR(capi_lib, "Component_GetCallableCount");
+    ompapi->ComponentInterop.GetCallableAt = (Component_GetCallableAt_t)LIBRARY_GET_ADDR(capi_lib, "Component_GetCallableAt");
+    ompapi->ComponentInterop.GetCallableDescriptor = (Component_GetCallableDescriptor_t)LIBRARY_GET_ADDR(capi_lib, "Component_GetCallableDescriptor");
+    ompapi->ComponentInterop.InvokeCallable = (Component_InvokeCallable_t)LIBRARY_GET_ADDR(capi_lib, "Component_InvokeCallable");
+    ompapi->ComponentInterop.WatchCallable = (Component_WatchCallable_t)LIBRARY_GET_ADDR(capi_lib, "Component_WatchCallable");
+    ompapi->ComponentInterop.UnwatchCallable = (Component_UnwatchCallable_t)LIBRARY_GET_ADDR(capi_lib, "Component_UnwatchCallable");
 
     return true;
 };

@@ -12997,6 +12997,178 @@
       ],
       "table": "ComponentInterop",
       "member": "Unwatch"
+    },
+    {
+      "ret": "struct OMPCallableRegistration*",
+      "name": "Component_RegisterCallable",
+      "params": [
+        {
+          "name": "owner_uid",
+          "type": "uint64_t"
+        },
+        {
+          "name": "descriptor",
+          "type": "const struct OMPCallableDescriptor*"
+        },
+        {
+          "name": "callback",
+          "type": "OMPCallableCallback"
+        },
+        {
+          "name": "userdata",
+          "type": "void*"
+        }
+      ],
+      "table": "ComponentInterop",
+      "member": "RegisterCallable"
+    },
+    {
+      "ret": "bool",
+      "name": "Component_UnregisterCallable",
+      "params": [
+        {
+          "name": "callable",
+          "type": "struct OMPCallableRegistration*"
+        }
+      ],
+      "table": "ComponentInterop",
+      "member": "UnregisterCallable"
+    },
+    {
+      "ret": "struct OMPCallableRegistration*",
+      "name": "Component_FindCallable",
+      "params": [
+        {
+          "name": "component",
+          "type": "struct OMPComponentHandle*"
+        },
+        {
+          "name": "name",
+          "type": "struct CAPIStringView"
+        }
+      ],
+      "table": "ComponentInterop",
+      "member": "FindCallable"
+    },
+    {
+      "ret": "bool",
+      "name": "Component_CallableIsValid",
+      "params": [
+        {
+          "name": "callable",
+          "type": "struct OMPCallableRegistration*"
+        }
+      ],
+      "table": "ComponentInterop",
+      "member": "CallableIsValid"
+    },
+    {
+      "ret": "uint32_t",
+      "name": "Component_GetCallableCount",
+      "params": [
+        {
+          "name": "component",
+          "type": "struct OMPComponentHandle*"
+        }
+      ],
+      "table": "ComponentInterop",
+      "member": "GetCallableCount"
+    },
+    {
+      "ret": "struct OMPCallableRegistration*",
+      "name": "Component_GetCallableAt",
+      "params": [
+        {
+          "name": "component",
+          "type": "struct OMPComponentHandle*"
+        },
+        {
+          "name": "index",
+          "type": "uint32_t"
+        }
+      ],
+      "table": "ComponentInterop",
+      "member": "GetCallableAt"
+    },
+    {
+      "ret": "const struct OMPCallableDescriptor*",
+      "name": "Component_GetCallableDescriptor",
+      "params": [
+        {
+          "name": "callable",
+          "type": "struct OMPCallableRegistration*"
+        }
+      ],
+      "table": "ComponentInterop",
+      "member": "GetCallableDescriptor"
+    },
+    {
+      "ret": "bool",
+      "name": "Component_InvokeCallable",
+      "params": [
+        {
+          "name": "callable",
+          "type": "struct OMPCallableRegistration*"
+        },
+        {
+          "name": "args",
+          "type": "const struct OMPCallableValue*"
+        },
+        {
+          "name": "arg_count",
+          "type": "uint32_t"
+        },
+        {
+          "name": "result",
+          "type": "struct OMPCallableValue*"
+        },
+        {
+          "name": "output",
+          "type": "struct OMPCallableOutputBuffer*"
+        },
+        {
+          "name": "error",
+          "type": "struct OMPCallableError*"
+        },
+        {
+          "name": "flags",
+          "type": "uint32_t"
+        }
+      ],
+      "table": "ComponentInterop",
+      "member": "InvokeCallable"
+    },
+    {
+      "ret": "struct OMPCallableWatch*",
+      "name": "Component_WatchCallable",
+      "params": [
+        {
+          "name": "callable",
+          "type": "struct OMPCallableRegistration*"
+        },
+        {
+          "name": "callback",
+          "type": "OMPCallableInvalidatedCallback"
+        },
+        {
+          "name": "userdata",
+          "type": "void*"
+        }
+      ],
+      "table": "ComponentInterop",
+      "member": "WatchCallable"
+    },
+    {
+      "ret": "bool",
+      "name": "Component_UnwatchCallable",
+      "params": [
+        {
+          "name": "watch",
+          "type": "struct OMPCallableWatch*"
+        }
+      ],
+      "table": "ComponentInterop",
+      "member": "UnwatchCallable"
     }
   ]
 }
