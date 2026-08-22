@@ -40,7 +40,8 @@ OMPCallableDescriptor descriptor(const char* name, OMPCallableParameter* params,
 	uint32_t count, OMPCallableValueType resultType)
 {
 	return { OMP_CALLABLE_ABI_VERSION, sizeof(OMPCallableDescriptor), stringView(name),
-		stringView("test callable"), count, params, resultType, OMPCallableFlag_MainThreadOnly };
+		stringView("test callable"), count, params, static_cast<uint32_t>(resultType),
+		OMPCallableFlag_MainThreadOnly };
 }
 
 struct FakeComponent final : IComponent
@@ -378,7 +379,8 @@ int main()
 	for (size_t i = 0; i < sizeof(scalarTypes) / sizeof(scalarTypes[0]); ++i)
 	{
 		OMPCallableParameter parameter { OMP_CALLABLE_ABI_VERSION, sizeof(OMPCallableParameter),
-			stringView("value"), scalarTypes[i], 0, value(OMPCallableValueType_Null) };
+			stringView("value"), static_cast<uint32_t>(scalarTypes[i]), 0,
+			value(OMPCallableValueType_Null) };
 		auto echoDescriptor = descriptor(scalarNames[i], &parameter, 1, scalarTypes[i]);
 		auto* echoCallable = Component_RegisterCallable(OwnerUID, &echoDescriptor, echo, nullptr);
 		CHECK(echoCallable);
